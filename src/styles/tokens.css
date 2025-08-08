@@ -1,0 +1,12 @@
+/* src/styles/tokens.css */
+
+:host {
+    --base-color: linear-gradient(135deg, #4b5563, #6b7280);
+    /* Gradiente gris profesional */
+    --primary-color: #3b82f6;
+    --text-primary: #111827;
+    --text-on-base: #ffffff;
+    --border-color: #e5e7eb;
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --radius-xl: 12px;
+}

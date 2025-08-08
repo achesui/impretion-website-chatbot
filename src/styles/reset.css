@@ -1,0 +1,51 @@
+/*
+  Define el estado inicial y el posicionamiento del CONTENEDOR del widget.
+  Esta es la única regla que afecta al elemento host desde dentro.
+*/
+:host {
+    /* Posicionamiento y Visibilidad */
+    position: fixed !important;
+    right: 20px !important;
+    bottom: 20px !important;
+    z-index: 2147483647 !important;
+    /* El valor máximo posible */
+    display: block !important;
+
+    /* ¡CAMBIO IMPORTANTE! Definimos un tamaño para que no afecte al flujo del body */
+    width: 0px !important;
+    height: 0px !important;
+
+    /* El contenido interno podrá desbordar este contenedor cero. */
+    /* Esto aísla el layout del body del layout del widget. */
+
+    pointer-events: none;
+    /* El contenedor no es clickeable, solo su contenido */
+}
+
+/*
+  Reset universal para TODOS los elementos DENTRO del Shadow DOM.
+*/
+:host *,
+:host *::before,
+:host *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid transparent;
+    font: inherit;
+    color: inherit;
+    line-height: inherit;
+    background-color: transparent;
+}
+
+:host button {
+    cursor: pointer;
+}
+
+/* ... (el resto de tu reset.css está bien) ... */
+
+/* Focus accesible */
+:host *:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--primary-color, #3b82f6);
+}

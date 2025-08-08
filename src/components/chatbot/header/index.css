@@ -1,0 +1,15 @@
+/* Estilos mínimos para Header (si es un botón o set de iconos) */
+.cb-header-addon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    color: var(--text-primary);
+}
+
+.cb-header-addon:hover {
+    box-shadow: var(--shadow-sm);
+}
