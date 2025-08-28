@@ -1,187 +1,225 @@
-import { useState } from "preact/hooks";
-import { ChatIcon, CheckOut, Star } from "../icons";
+import { useEffect, useState } from "preact/hooks";
+import { ChatIcon, DotIcon, XIcon } from "../../icons";
 import Header from "./header";
 import "./initializer.css";
+import Body from "./body";
+import type { Messages } from "./chatbot-types";
+import Footer from "./footer";
+import type { ServerConfiguration } from "../../types";
+import { actionsMap } from "../../configuration-map";
+import { useCallHandler } from "../../hooks/use-call-handler";
 
-interface ServerConfig {
-  greetings?: string;
-  actions?: string[];
-  baseColor?: string;
-}
+export function Initializer({
+  configuration,
+  connection,
+}: {
+  configuration: ServerConfiguration["chatbotConfiguration"];
+  connection: ServerConfiguration["connectionData"];
+}) {
+  const { conversation } = configuration;
 
-interface InitializerProps {
-  serverConfig?: ServerConfig;
-}
+  const transformedConversation = conversation.map((message) => ({
+    ...message,
+    timestamp: new Date(message.timestamp),
+  }));
 
-export function Initializer({ serverConfig }: InitializerProps) {
-  console.log("Server Config:", serverConfig);
   const [isOpen, setIsOpen] = useState(true);
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<
-    Array<{ id: string; text: string; sender: "user" | "bot"; timestamp: Date }>
-  >([
-    {
-      id: "1",
-      text:
-        serverConfig?.greetings ||
-        "¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?",
-      sender: "bot",
-      timestamp: new Date(),
-    },
+  const [inputMessage, setInputMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [messages, setMessages] = useState<Messages>([
+    ...transformedConversation,
   ]);
 
-  const handleSendMessage = () => {
-    if (!message.trim()) return;
+  const {
+    callHandler,
+    time,
+    callReconnect,
+    callMode,
+    callStatus,
+    isSessionAlive,
+  } = useCallHandler({
+    connection,
+    setMessages,
+  });
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        text: message,
-        sender: "user",
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || loading) return;
+
+    try {
+      const newUserMessage = {
+        content: inputMessage,
+        role: "user" as const,
         timestamp: new Date(),
-      },
-    ]);
-    setMessage("");
+        messageType: "commonMessage",
+      };
 
-    // Respuesta simple
-    setTimeout(() => {
+      setMessages((prev) => [...prev, newUserMessage]);
+      setInputMessage("");
+      setLoading(true);
+
+      const token = document
+        .querySelector("script[cbToken]")
+        ?.getAttribute("cbToken");
+
+      const messageResponse = await fetch(
+        `http://localhost:3002/channels/website/message?session=${localStorage.getItem(
+          "cb-session"
+        )}&token=${token}&host=${window.location.origin}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: newUserMessage }),
+        }
+      );
+
+      if (!messageResponse.ok) {
+        throw new Error("Error en la generación de la respuesta.");
+      }
+
+      const data = await messageResponse.json();
+      const { content, messageType, role, timestamp } = data;
+
+      if (messageType === "itemsFound") {
+        setMessages((prev) => [
+          ...prev,
+          {
+            content,
+            role,
+            timestamp: new Date(timestamp),
+            messageType: "itemsFound",
+          },
+        ]);
+        return;
+      }
+
       setMessages((prev) => [
         ...prev,
         {
-          id: (Date.now() + 1).toString(),
-          text: "Gracias por tu mensaje. Te responderé pronto.",
-          sender: "bot",
-          timestamp: new Date(),
+          content,
+          role: "assistant",
+          timestamp: new Date(timestamp),
+          messageType,
         },
       ]);
-    }, 800);
-  };
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+    } catch (error) {
+      console.error("❌ Error enviando mensaje:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          content:
+            "Lo siento, no he podido procesar tu mensaje. Por favor, ¿podrías intentar enviarme el mensaje de nuevo?",
+          role: "assistant" as const,
+          timestamp: new Date(),
+          messageType: "commonMessage",
+        },
+      ]);
+    } finally {
+      setLoading(false);
     }
   };
 
+  /**
+   * ✅ RESTAURADO: useEffect para reconexión automática
+   * Necesario para mantener la sesión entre navegaciones/recargas
+   */
+  useEffect(() => {
+    if (callMode && isSessionAlive && !callStatus) {
+      console.log(
+        "🔄 Sesión activa detectada - Iniciando reconexión automática..."
+      );
+      callReconnect();
+    }
+  }, [callMode, isSessionAlive, callStatus, callReconnect]);
+
   return (
     <div className="cb-root">
-      <div className="cb-container">
-        {/* Botones flotantes a la izquierda del chat cuando está abierto */}
-        {isOpen && (
-          <div className="cb-left-fabs">
-            <div className="cb-tooltip-wrap">
-              <div className="cb-tooltip">Checkout por Voz</div>
-              <button className="cb-fab" aria-label="Checkout por Voz">
-                <CheckOut color="#fff" className="w-5 h-5" />
-              </button>
-            </div>
+      {isOpen && (
+        <div className="cb-left-fabs" style={{ boxShadow: "none" }}>
+          <div className="cb-tooltip-wrap">
+            {configuration.linkedAssistantActions.map((action, index) => {
+              const actionConfig = actionsMap(action);
+              if (!actionConfig?.icon) return null;
 
-            <div className="cb-tooltip-wrap">
-              <div className="cb-tooltip">Selector Mágico</div>
-              <button className="cb-fab" aria-label="Selector Mágico">
-                <Star color="#fff" className="w-5 h-5" />
-              </button>
-            </div>
+              const ActionIcon = actionConfig.icon;
+              return (
+                <div key={index} className="cb-tooltip-wrap">
+                  <div className="cb-tooltip">{actionConfig.label}</div>
+                  <button className="cb-fab" aria-label={action}>
+                    <ActionIcon color="#fff" className="w-6 h-6" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
-        )}
-
-        <div className={`cb-window ${isOpen ? "is-open" : ""}`}>
-          <header className="cb-header">
-            <div className="cb-title">
-              <div className="cb-avatar">
-                <ChatIcon size={18} />
-              </div>
-              <div>
-                <h2>Asistente Virtual</h2>
-                <p>En línea</p>
-              </div>
-            </div>
-            <button
-              className="cb-close"
-              aria-label="Cerrar chat"
-              onClick={() => setIsOpen(false)}
-            >
-              ×
-            </button>
-          </header>
-
-          <main className="cb-messages">
-            {messages.map((m) => (
-              <div
-                key={m.id}
-                className={`cb-bubble ${m.sender === "user" ? "user" : "bot"}`}
-              >
-                {m.text}
-              </div>
-            ))}
-          </main>
-
-          <footer className="cb-input">
-            <div className="cb-input-row">
-              <input
-                type="text"
-                value={message}
-                onChange={(e) =>
-                  setMessage((e.target as HTMLInputElement).value)
-                }
-                onKeyDown={handleKeyDown}
-                placeholder="Escribe tu mensaje..."
-              />
-              <Header />
-              <button
-                className="cb-send"
-                onClick={handleSendMessage}
-                disabled={!message.trim()}
-              >
-                Enviar
-              </button>
-            </div>
-          </footer>
         </div>
+      )}
+
+      <div className={`cb-window ${isOpen ? "is-open" : ""}`}>
+        <Header
+          connection={connection}
+          callMode={callMode}
+          callStatus={callStatus}
+          callHandler={callHandler}
+          time={time}
+        />
+
+        <Body messages={messages} loading={loading} />
+
+        <Footer
+          setInputMessage={setInputMessage}
+          handleSendMessage={handleSendMessage}
+          message={inputMessage}
+          // disabled={loading}
+        />
       </div>
+
+      {callMode && !isOpen && (
+        <div className="cb-call-tooltip">
+          <DotIcon size={10} strokeWidth={15} />
+          <p style={{ fontSize: 14 }}>
+            {String(Math.floor(time / 60)).padStart(2, "0")}:
+            {String(time % 60).padStart(2, "0")}
+          </p>
+        </div>
+      )}
 
       <div className="cb-fab-wrapper">
         {!isOpen && (
           <div className="cb-fab-col">
-            {serverConfig?.actions?.map((action, index) => (
-              <div key={index} className="cb-tooltip-wrap">
-                <div className="cb-tooltip">{action}</div>
-                <button className="cb-fab" aria-label={action}>
-                  {index === 0 ? (
-                    <CheckOut color="#fff" className="w-5 h-5" />
-                  ) : (
-                    <Star color="#fff" className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            )) || (
-              <>
-                <div className="cb-tooltip-wrap">
-                  <div className="cb-tooltip">Checkout por Voz</div>
-                  <button className="cb-fab" aria-label="Checkout por Voz">
-                    <CheckOut color="#fff" className="w-5 h-5" />
+            {configuration.linkedAssistantActions.map((action, index) => {
+              const actionConfig = actionsMap(action);
+              if (!actionConfig?.icon) return null;
+
+              const ActionIcon = actionConfig.icon;
+              return (
+                <div key={index} className="cb-tooltip-wrap">
+                  <div className="cb-tooltip">{actionConfig.label}</div>
+                  <button className="cb-fab" aria-label={action}>
+                    <ActionIcon color="#fff" className="w-6 h-6" />
                   </button>
                 </div>
-                <div className="cb-tooltip-wrap">
-                  <div className="cb-tooltip">Selector Mágico</div>
-                  <button className="cb-fab" aria-label="Selector Mágico">
-                    <Star color="#fff" className="w-5 h-5" />
-                  </button>
-                </div>
-              </>
-            )}
+              );
+            })}
           </div>
         )}
 
-        <button
-          className="cb-fab-main"
-          onClick={() => setIsOpen(true)}
-          aria-label="Abrir Asistente"
-        >
-          <ChatIcon size={28} className="text-white" />
-        </button>
+        {isOpen ? (
+          <button
+            className="cb-fab-main"
+            onClick={() => setIsOpen(false)}
+            aria-label="Cerrar Asistente"
+          >
+            <XIcon size={28} className="text-white" />
+          </button>
+        ) : (
+          <button
+            className="cb-fab-main"
+            onClick={() => setIsOpen(true)}
+            aria-label="Abrir Asistente"
+          >
+            <ChatIcon size={28} className="text-white" />
+          </button>
+        )}
       </div>
     </div>
   );

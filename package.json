@@ -10,12 +10,12 @@
     "build:watch": "vite build --watch"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.1.11",
-    "preact": "^10.27.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "tailwindcss": "^4.1.11",
-    "vite-plugin-lib-inject-css": "^2.2.2"
+    "@cloudflare/realtimekit": "1.1.6",
+    "@ricky0123/vad-web": "0.0.24",
+    "agents": "0.0.113",
+    "preact": "10.27.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
@@ -28,6 +28,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
     "rollup-plugin-visualizer": "^6.0.3",
+    "terser": "^5.43.1",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.35.1",
     "vite": "^7.0.4",

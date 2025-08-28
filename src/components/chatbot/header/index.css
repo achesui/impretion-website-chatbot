@@ -13,3 +13,68 @@
 .cb-header-addon:hover {
     box-shadow: var(--shadow-sm);
 }
+
+.cb-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    color: var(--text-on-base, #ffffff);
+    background: var(--base-color, linear-gradient(135deg, #4b5563, #6b7280));
+    flex-shrink: 0;
+}
+
+.cb-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cb-title h2 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.cb-title p {
+    margin: 0;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.cb-header-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cb-call-container{
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    padding-right: 0;
+    cursor: pointer;
+}
+
+.cb-call-text{
+    padding: 2px 6px 2px 16px;
+    font-size: 12px;
+    color: white;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.cb-call-icon-container{
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+}

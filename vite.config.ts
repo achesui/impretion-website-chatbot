@@ -14,7 +14,7 @@ export default defineConfig({
       userscript: {
         name: "Mi Chatbot Widget",
         match: [
-          "https://www.calzatodo.com.co/*", // Cambia por tu sitio
+          "https://impretion-test.myshopify.com/*", // Cambia por tu sitio
         ],
         grant: ["GM_addStyle"],
         // IMPORTANTE: URLs para auto-actualización
@@ -40,12 +40,32 @@ export default defineConfig({
   },
 
   build: {
-    lib: {
-      entry: path.resolve(__dirname, "src/widget.tsx"),
-      formats: ["iife"],
-      name: "ChatbotWidget",
-      fileName: () => "chatbot.js",
+    outDir: "dist",
+    rollupOptions: {
+      input: path.resolve(__dirname, "src/widget.tsx"),
+      output: {
+        format: "es", // Cambiar a ES modules
+        entryFileNames: "chatbot.js",
+
+        manualChunks: {
+          "vad-chunk": ["@ricky0123/vad-web"],
+          "realtime-chunk": ["@cloudflare/realtimekit"],
+        },
+        chunkFileNames: "[name].js",
+      },
     },
-    minify: true,
+    minify: "terser",
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+  },
+
+  // Configuración para desarrollo
+  esbuild: {
+    drop: process.env.NODE_ENV === "production" ? ["console", "debugger"] : [],
+    target: "esnext",
   },
 });
